@@ -1,1 +1,4 @@
 project_id = "cgrwkqxecgrqbqvtzpjg"
+
+[functions.paypal-webhook]
+verify_jwt = false
