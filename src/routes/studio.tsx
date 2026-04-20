@@ -67,30 +67,45 @@ function Studio() {
   const [warpedUrl, setWarpedUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saveTitle, setSaveTitle] = useState("");
   const saveProjectFn = useServerFn(saveProject);
 
-  const onSave = async () => {
-    const mode: "design" | "stencil" | "warp" = warpedUrl
-      ? "warp"
-      : stencilUrl
-      ? "stencil"
-      : "design";
-    const imageData = warpedUrl ?? stencilUrl ?? designUrl;
-    if (!imageData) {
+  const currentMode: "design" | "stencil" | "warp" = warpedUrl
+    ? "warp"
+    : stencilUrl
+    ? "stencil"
+    : "design";
+
+  const openSaveDialog = () => {
+    if (!designUrl) {
       toast.error("Nothing to save yet");
+      return;
+    }
+    setSaveTitle(prompt.trim().slice(0, 80) || "Untitled Design");
+    setSaveOpen(true);
+  };
+
+  const onConfirmSave = async () => {
+    const imageData = warpedUrl ?? stencilUrl ?? designUrl;
+    if (!imageData) return;
+    const title = saveTitle.trim();
+    if (!title) {
+      toast.error("Title is required");
       return;
     }
     setSaving(true);
     try {
       await saveProjectFn({
         data: {
-          title: prompt.trim().slice(0, 80) || "Untitled Design",
-          mode,
+          title: title.slice(0, 200),
+          mode: currentMode,
           prompt: prompt || null,
           imageData,
         },
       });
       toast.success("Saved to dashboard");
+      setSaveOpen(false);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
