@@ -405,6 +405,52 @@ function Studio() {
           </TabsContent>
         </Tabs>
       </main>
+
+      <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save to dashboard</DialogTitle>
+            <DialogDescription>
+              Saving the{" "}
+              <span className="font-semibold uppercase tracking-wider text-primary">
+                {currentMode}
+              </span>{" "}
+              output of your project.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="save-title">Project title</Label>
+            <Input
+              id="save-title"
+              value={saveTitle}
+              onChange={(e) => setSaveTitle(e.target.value)}
+              maxLength={200}
+              placeholder="Untitled Design"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button
+              onClick={onConfirmSave}
+              disabled={saving || !saveTitle.trim()}
+              className="bg-primary text-primary-foreground shadow-gold hover:opacity-90"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" /> Saving…
+                </>
+              ) : (
+                <>
+                  <Save className="mr-1 h-4 w-4" /> Save
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
