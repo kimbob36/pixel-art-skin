@@ -174,24 +174,21 @@ function Studio() {
               Generate → stencilize → place on body.
             </p>
           </div>
-          {quotaInfo && (
-            <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-              {quotaInfo.used} / {quotaInfo.limit} this month
-            </span>
-          )}
-          <Button
-            onClick={onSave}
-            disabled={saving || !designUrl}
-            variant="outline"
-            className="ml-3"
-          >
-            {saving ? (
-              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="mr-1 h-4 w-4" />
+          <div className="flex items-center gap-3">
+            {quotaInfo && (
+              <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+                {quotaInfo.used} / {quotaInfo.limit} this month
+              </span>
             )}
-            Save to dashboard
-          </Button>
+            <Button onClick={onSave} disabled={saving || !designUrl} variant="outline">
+              {saving ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-1 h-4 w-4" />
+              )}
+              Save to dashboard
+            </Button>
+          </div>
         </div>
 
         <Tabs value={tab} onValueChange={setTab} className="mt-8">
