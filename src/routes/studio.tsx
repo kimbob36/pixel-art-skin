@@ -203,7 +203,7 @@ function Studio() {
                 {quotaInfo.used} / {quotaInfo.limit} this month
               </span>
             )}
-            <Button onClick={onSave} disabled={saving || !designUrl} variant="outline">
+            <Button onClick={openSaveDialog} disabled={saving || !designUrl} variant="outline">
               {saving ? (
                 <Loader2 className="mr-1 h-4 w-4 animate-spin" />
               ) : (
