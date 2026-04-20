@@ -15,7 +15,8 @@ import { warpOntoBackground, type Point } from "@/lib/warp";
 import { toast } from "sonner";
 import { Wand2, Download, Upload, ScanLine, Loader2, Save } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { saveProject } from "@/utils/projects.functions";
+import { saveProject, loadProject } from "@/utils/projects.functions";
+import type * as fabric from "fabric";
 import {
   Dialog,
   DialogContent,
