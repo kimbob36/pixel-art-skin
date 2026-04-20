@@ -332,7 +332,15 @@ function Studio() {
               </div>
               <div className="flex min-h-[60vh] items-center justify-center rounded-xl border border-border/60 bg-card/50 p-4">
                 {designUrl ? (
-                  <FabricCanvas width={640} height={640} imageUrl={designUrl} />
+                  <FabricCanvas
+                    width={640}
+                    height={640}
+                    imageUrl={designUrl}
+                    initialJson={initialJson}
+                    onReady={(c) => {
+                      fabricRef.current = c;
+                    }}
+                  />
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Your generated design will appear here.
