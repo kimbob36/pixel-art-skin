@@ -141,6 +141,33 @@ function Studio() {
     if (!loading && !user) navigate({ to: "/login" });
   }, [loading, user, navigate]);
 
+  // Hydrate from existing project when /studio?id=...
+  useEffect(() => {
+    if (!user || !routeId || projectId === routeId) return;
+    let cancelled = false;
+    setLoadingProject(true);
+    loadProjectFn({ data: { id: routeId } })
+      .then((p) => {
+        if (cancelled) return;
+        setProjectId(p.id);
+        setSaveTitle(p.title);
+        setPrompt(p.prompt ?? "");
+        setDesignUrl(p.designUrl);
+        setBgUrl(p.bodyUrl);
+        setBgChanged(false);
+        setStencilUrl(null);
+        setWarpedUrl(null);
+        setInitialJson(p.fabricJson ?? null);
+        setTab(p.mode === "warp" ? "warp" : p.mode === "stencil" ? "stencil" : "generate");
+        toast.success(`Loaded "${p.title}"`);
+      })
+      .catch((e) => toast.error((e as Error).message))
+      .finally(() => !cancelled && setLoadingProject(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [user, routeId, projectId, loadProjectFn]);
+
   const onGenerate = async () => {
     if (!prompt.trim()) {
       toast.error("Describe the design first");
