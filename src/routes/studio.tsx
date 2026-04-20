@@ -55,35 +55,29 @@ function Studio() {
   const { id: routeId } = Route.useSearch();
   const [tab, setTab] = useState("generate");
 
-  // Project identity (set when loaded from /studio?id=...)
   const [projectId, setProjectId] = useState<string | null>(null);
 
-  // Generate
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("black and grey traditional");
   const [generating, setGenerating] = useState(false);
   const [designUrl, setDesignUrl] = useState<string | null>(null);
   const [quotaInfo, setQuotaInfo] = useState<{ used: number; limit: number } | null>(null);
 
-  // Stencil
   const [threshold, setThreshold] = useState(60);
   const [blur, setBlur] = useState(1);
   const [stencilUrl, setStencilUrl] = useState<string | null>(null);
 
-  // Warp
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [bgChanged, setBgChanged] = useState(false);
   const [warpedUrl, setWarpedUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Save
   const [saving, setSaving] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveTitle, setSaveTitle] = useState("");
   const saveProjectFn = useServerFn(saveProject);
   const loadProjectFn = useServerFn(loadProject);
 
-  // Fabric canvas + hydration json
   const fabricRef = useRef<fabric.Canvas | null>(null);
   const [initialJson, setInitialJson] = useState<unknown>(null);
   const [loadingProject, setLoadingProject] = useState(false);
@@ -141,7 +135,6 @@ function Studio() {
     if (!loading && !user) navigate({ to: "/login" });
   }, [loading, user, navigate]);
 
-  // Hydrate from existing project when /studio?id=...
   useEffect(() => {
     if (!user || !routeId || projectId === routeId) return;
     let cancelled = false;
@@ -168,33 +161,59 @@ function Studio() {
     };
   }, [user, routeId, projectId, loadProjectFn]);
 
+  // ---------------------------------------------------------------------------------
+  // HIER IST DIE NEUE GENERIEREN FUNKTION (DIREKT ZU HUGGINGFACE)
+  // ---------------------------------------------------------------------------------
   const onGenerate = async () => {
     if (!prompt.trim()) {
       toast.error("Describe the design first");
       return;
     }
+
+    // 🚨 WICHTIG: Füge hier deinen echten Huggingface-Key ein (lass die Anführungszeichen stehen!)
+    const HUGGINGFACE_KEY = "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";
+
+    if (HUGGINGFACE_KEY === "DEIN_KEY_HIER") {
+      toast.error("Bitte trage erst deinen Huggingface Key im Code ein!");
+      return;
+    }
+
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-design", {
-        body: { prompt, style },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setDesignUrl(data.imageUrl);
-      setQuotaInfo({ used: data.used, limit: data.limit });
-      setStencilUrl(null);
-      toast.success(`Generated (${data.used}/${data.limit} this month)`);
-    } catch (e) {
-      const msg = (e as Error).message;
-      if (msg.toLowerCase().includes("limit")) {
-        toast.error("Generation limit reached — upgrade for more.");
-      } else {
-        toast.error(msg);
+      const fullPrompt = `Tattoo design: ${prompt}. Style: ${style || "black and grey traditional"}. Clean linework on white background, high contrast, suitable for stenciling, no text, no watermark.`;
+
+      const response = await fetch(
+        "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${HUGGINGFACE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ inputs: fullPrompt }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Fehler: ${response.status} - ${errorText}`);
       }
+
+      const blob = await response.blob();
+      const imageUrl = URL.createObjectURL(blob);
+
+      setDesignUrl(imageUrl);
+      setStencilUrl(null);
+      // Quota wird ignoriert, da es nun unbegrenzt & kostenlos läuft!
+      setQuotaInfo(null);
+      toast.success("Design erfolgreich generiert!");
+    } catch (e) {
+      toast.error((e as Error).message);
     } finally {
       setGenerating(false);
     }
   };
+  // ---------------------------------------------------------------------------------
 
   const onStencilize = async () => {
     if (!designUrl) return;
