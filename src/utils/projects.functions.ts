@@ -82,14 +82,14 @@ export const saveProject = createServerFn({ method: "POST" })
       bodyUrl = await uploadAndSign(supabase, "body-references", userId, data.bodyImageData);
     }
 
-    const payload: Record<string, unknown> = {
+    const payload = {
       title: data.title,
       mode: data.mode,
       prompt: data.prompt ?? null,
       design_url: designUrl,
-      fabric_json: (data.fabricJson ?? null) as never,
+      fabric_json: (data.fabricJson ?? null) as Json,
+      ...(bodyUrl !== undefined ? { body_reference_url: bodyUrl } : {}),
     };
-    if (bodyUrl !== undefined) payload.body_reference_url = bodyUrl;
 
     if (data.id) {
       const { error } = await supabase
@@ -103,7 +103,7 @@ export const saveProject = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabase
       .from("projects")
-      .insert({ user_id: userId, ...payload } as never)
+      .insert({ user_id: userId, ...payload })
       .select("id")
       .single();
     if (error) throw new Error(`Save failed: ${error.message}`);
