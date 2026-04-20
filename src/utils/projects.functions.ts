@@ -149,6 +149,6 @@ export const loadProject = createServerFn({ method: "POST" })
       prompt: (row.prompt as string | null) ?? null,
       designUrl,
       bodyUrl,
-      fabricJson: row.fabric_json as unknown,
+      fabricJson: (row.fabric_json ?? null) as Json,
     };
   });
