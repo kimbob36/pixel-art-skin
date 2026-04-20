@@ -52,7 +52,7 @@ export function FabricCanvas({ width, height, imageUrl, initialJson, onReady }: 
       const key = `json:${JSON.stringify(initialJson).slice(0, 64)}`;
       if (hydratedKeyRef.current === key) return;
       hydratedKeyRef.current = key;
-      c.loadFromJSON(initialJson as fabric.SerializedCanvasJSONOptions, () => {
+      c.loadFromJSON(initialJson as Parameters<typeof c.loadFromJSON>[0], () => {
         if (cancelled) return;
         c.backgroundColor = "#0a0a0a";
         c.renderAll();
