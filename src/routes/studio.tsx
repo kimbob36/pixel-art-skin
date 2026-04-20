@@ -16,6 +16,14 @@ import { toast } from "sonner";
 import { Wand2, Download, Upload, ScanLine, Loader2, Save } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { saveProject } from "@/utils/projects.functions";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
@@ -59,30 +67,45 @@ function Studio() {
   const [warpedUrl, setWarpedUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saveTitle, setSaveTitle] = useState("");
   const saveProjectFn = useServerFn(saveProject);
 
-  const onSave = async () => {
-    const mode: "design" | "stencil" | "warp" = warpedUrl
-      ? "warp"
-      : stencilUrl
-      ? "stencil"
-      : "design";
-    const imageData = warpedUrl ?? stencilUrl ?? designUrl;
-    if (!imageData) {
+  const currentMode: "design" | "stencil" | "warp" = warpedUrl
+    ? "warp"
+    : stencilUrl
+    ? "stencil"
+    : "design";
+
+  const openSaveDialog = () => {
+    if (!designUrl) {
       toast.error("Nothing to save yet");
+      return;
+    }
+    setSaveTitle(prompt.trim().slice(0, 80) || "Untitled Design");
+    setSaveOpen(true);
+  };
+
+  const onConfirmSave = async () => {
+    const imageData = warpedUrl ?? stencilUrl ?? designUrl;
+    if (!imageData) return;
+    const title = saveTitle.trim();
+    if (!title) {
+      toast.error("Title is required");
       return;
     }
     setSaving(true);
     try {
       await saveProjectFn({
         data: {
-          title: prompt.trim().slice(0, 80) || "Untitled Design",
-          mode,
+          title: title.slice(0, 200),
+          mode: currentMode,
           prompt: prompt || null,
           imageData,
         },
       });
       toast.success("Saved to dashboard");
+      setSaveOpen(false);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -180,7 +203,7 @@ function Studio() {
                 {quotaInfo.used} / {quotaInfo.limit} this month
               </span>
             )}
-            <Button onClick={onSave} disabled={saving || !designUrl} variant="outline">
+            <Button onClick={openSaveDialog} disabled={saving || !designUrl} variant="outline">
               {saving ? (
                 <Loader2 className="mr-1 h-4 w-4 animate-spin" />
               ) : (
@@ -382,6 +405,52 @@ function Studio() {
           </TabsContent>
         </Tabs>
       </main>
+
+      <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save to dashboard</DialogTitle>
+            <DialogDescription>
+              Saving the{" "}
+              <span className="font-semibold uppercase tracking-wider text-primary">
+                {currentMode}
+              </span>{" "}
+              output of your project.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="save-title">Project title</Label>
+            <Input
+              id="save-title"
+              value={saveTitle}
+              onChange={(e) => setSaveTitle(e.target.value)}
+              maxLength={200}
+              placeholder="Untitled Design"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button
+              onClick={onConfirmSave}
+              disabled={saving || !saveTitle.trim()}
+              className="bg-primary text-primary-foreground shadow-gold hover:opacity-90"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" /> Saving…
+                </>
+              ) : (
+                <>
+                  <Save className="mr-1 h-4 w-4" /> Save
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
