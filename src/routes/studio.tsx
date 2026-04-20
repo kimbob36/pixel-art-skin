@@ -52,7 +52,11 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 function Studio() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { id: routeId } = Route.useSearch();
   const [tab, setTab] = useState("generate");
+
+  // Project identity (set when loaded from /studio?id=...)
+  const [projectId, setProjectId] = useState<string | null>(null);
 
   // Generate
   const [prompt, setPrompt] = useState("");
@@ -68,12 +72,21 @@ function Studio() {
 
   // Warp
   const [bgUrl, setBgUrl] = useState<string | null>(null);
+  const [bgChanged, setBgChanged] = useState(false);
   const [warpedUrl, setWarpedUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Save
   const [saving, setSaving] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveTitle, setSaveTitle] = useState("");
   const saveProjectFn = useServerFn(saveProject);
+  const loadProjectFn = useServerFn(loadProject);
+
+  // Fabric canvas + hydration json
+  const fabricRef = useRef<fabric.Canvas | null>(null);
+  const [initialJson, setInitialJson] = useState<unknown>(null);
+  const [loadingProject, setLoadingProject] = useState(false);
 
   const currentMode: "design" | "stencil" | "warp" = warpedUrl
     ? "warp"
