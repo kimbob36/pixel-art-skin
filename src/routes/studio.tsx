@@ -179,6 +179,19 @@ function Studio() {
               {quotaInfo.used} / {quotaInfo.limit} this month
             </span>
           )}
+          <Button
+            onClick={onSave}
+            disabled={saving || !designUrl}
+            variant="outline"
+            className="ml-3"
+          >
+            {saving ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-1 h-4 w-4" />
+            )}
+            Save to dashboard
+          </Button>
         </div>
 
         <Tabs value={tab} onValueChange={setTab} className="mt-8">
