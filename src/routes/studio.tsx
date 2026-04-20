@@ -13,7 +13,9 @@ import { PerspectiveControls } from "@/components/studio/PerspectiveControls";
 import { stencilize } from "@/lib/stencil";
 import { warpOntoBackground, type Point } from "@/lib/warp";
 import { toast } from "sonner";
-import { Wand2, Download, Upload, ScanLine, Loader2 } from "lucide-react";
+import { Wand2, Download, Upload, ScanLine, Loader2, Save } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { saveProject } from "@/utils/projects.functions";
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
@@ -56,6 +58,37 @@ function Studio() {
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [warpedUrl, setWarpedUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [saving, setSaving] = useState(false);
+  const saveProjectFn = useServerFn(saveProject);
+
+  const onSave = async () => {
+    const mode: "design" | "stencil" | "warp" = warpedUrl
+      ? "warp"
+      : stencilUrl
+      ? "stencil"
+      : "design";
+    const imageData = warpedUrl ?? stencilUrl ?? designUrl;
+    if (!imageData) {
+      toast.error("Nothing to save yet");
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveProjectFn({
+        data: {
+          title: prompt.trim().slice(0, 80) || "Untitled Design",
+          mode,
+          prompt: prompt || null,
+          imageData,
+        },
+      });
+      toast.success("Saved to dashboard");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -141,11 +174,21 @@ function Studio() {
               Generate → stencilize → place on body.
             </p>
           </div>
-          {quotaInfo && (
-            <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-              {quotaInfo.used} / {quotaInfo.limit} this month
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {quotaInfo && (
+              <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+                {quotaInfo.used} / {quotaInfo.limit} this month
+              </span>
+            )}
+            <Button onClick={onSave} disabled={saving || !designUrl} variant="outline">
+              {saving ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-1 h-4 w-4" />
+              )}
+              Save to dashboard
+            </Button>
+          </div>
         </div>
 
         <Tabs value={tab} onValueChange={setTab} className="mt-8">
