@@ -183,7 +183,7 @@ function Studio() {
       const fullPrompt = `Tattoo design: ${prompt}. Style: ${style || "black and grey traditional"}. Clean linework on white background, high contrast, suitable for stenciling, no text, no watermark.`;
 
       const response = await fetch(
-        "https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5",
+         "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-dev",
         {
           method: "POST",
           headers: {
