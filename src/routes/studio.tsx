@@ -15,7 +15,8 @@ import { warpOntoBackground, type Point } from "@/lib/warp";
 import { toast } from "sonner";
 import { Wand2, Download, Upload, ScanLine, Loader2, Save } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { saveProject } from "@/utils/projects.functions";
+import { saveProject, loadProject } from "@/utils/projects.functions";
+import type * as fabric from "fabric";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,9 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/studio")({
+  validateSearch: (search: Record<string, unknown>): { id?: string } => ({
+    id: typeof search.id === "string" ? search.id : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "AI Studio — inkSync AI" },
@@ -48,7 +52,11 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 function Studio() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { id: routeId } = Route.useSearch();
   const [tab, setTab] = useState("generate");
+
+  // Project identity (set when loaded from /studio?id=...)
+  const [projectId, setProjectId] = useState<string | null>(null);
 
   // Generate
   const [prompt, setPrompt] = useState("");
@@ -64,12 +72,21 @@ function Studio() {
 
   // Warp
   const [bgUrl, setBgUrl] = useState<string | null>(null);
+  const [bgChanged, setBgChanged] = useState(false);
   const [warpedUrl, setWarpedUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Save
   const [saving, setSaving] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveTitle, setSaveTitle] = useState("");
   const saveProjectFn = useServerFn(saveProject);
+  const loadProjectFn = useServerFn(loadProject);
+
+  // Fabric canvas + hydration json
+  const fabricRef = useRef<fabric.Canvas | null>(null);
+  const [initialJson, setInitialJson] = useState<unknown>(null);
+  const [loadingProject, setLoadingProject] = useState(false);
 
   const currentMode: "design" | "stencil" | "warp" = warpedUrl
     ? "warp"
@@ -96,14 +113,21 @@ function Studio() {
     }
     setSaving(true);
     try {
-      await saveProjectFn({
+      const fabricJson = fabricRef.current ? fabricRef.current.toJSON() : null;
+      const result = await saveProjectFn({
         data: {
+          id: projectId ?? undefined,
           title: title.slice(0, 200),
           mode: currentMode,
           prompt: prompt || null,
           imageData,
+          bodyImageData: bgUrl ?? null,
+          bodyChanged: bgChanged,
+          fabricJson,
         },
       });
+      if (!projectId && result?.id) setProjectId(result.id);
+      setBgChanged(false);
       toast.success("Saved to dashboard");
       setSaveOpen(false);
     } catch (e) {
@@ -116,6 +140,33 @@ function Studio() {
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
   }, [loading, user, navigate]);
+
+  // Hydrate from existing project when /studio?id=...
+  useEffect(() => {
+    if (!user || !routeId || projectId === routeId) return;
+    let cancelled = false;
+    setLoadingProject(true);
+    loadProjectFn({ data: { id: routeId } })
+      .then((p) => {
+        if (cancelled) return;
+        setProjectId(p.id);
+        setSaveTitle(p.title);
+        setPrompt(p.prompt ?? "");
+        setDesignUrl(p.designUrl);
+        setBgUrl(p.bodyUrl);
+        setBgChanged(false);
+        setStencilUrl(null);
+        setWarpedUrl(null);
+        setInitialJson(p.fabricJson ?? null);
+        setTab(p.mode === "warp" ? "warp" : p.mode === "stencil" ? "stencil" : "generate");
+        toast.success(`Loaded "${p.title}"`);
+      })
+      .catch((e) => toast.error((e as Error).message))
+      .finally(() => !cancelled && setLoadingProject(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [user, routeId, projectId, loadProjectFn]);
 
   const onGenerate = async () => {
     if (!prompt.trim()) {
@@ -160,7 +211,10 @@ function Studio() {
     const f = e.target.files?.[0];
     if (!f) return;
     const reader = new FileReader();
-    reader.onload = () => setBgUrl(reader.result as string);
+    reader.onload = () => {
+      setBgUrl(reader.result as string);
+      setBgChanged(true);
+    };
     reader.readAsDataURL(f);
   };
 
@@ -278,7 +332,15 @@ function Studio() {
               </div>
               <div className="flex min-h-[60vh] items-center justify-center rounded-xl border border-border/60 bg-card/50 p-4">
                 {designUrl ? (
-                  <FabricCanvas width={640} height={640} imageUrl={designUrl} />
+                  <FabricCanvas
+                    width={640}
+                    height={640}
+                    imageUrl={designUrl}
+                    initialJson={initialJson}
+                    onReady={(c) => {
+                      fabricRef.current = c;
+                    }}
+                  />
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Your generated design will appear here.

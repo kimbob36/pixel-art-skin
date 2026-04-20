@@ -5,15 +5,19 @@ interface Props {
   width: number;
   height: number;
   imageUrl?: string | null;
+  /** If provided, hydrate canvas from this Fabric.js JSON instead of imageUrl. */
+  initialJson?: unknown;
   onReady?: (canvas: fabric.Canvas) => void;
 }
 
 /**
- * Fabric.js canvas with an image loaded as a movable/scalable object.
+ * Fabric.js canvas. Loads either a single image (imageUrl) or a full saved
+ * scene (initialJson). initialJson takes precedence when provided.
  */
-export function FabricCanvas({ width, height, imageUrl, onReady }: Props) {
+export function FabricCanvas({ width, height, imageUrl, initialJson, onReady }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const fcRef = useRef<fabric.Canvas | null>(null);
+  const hydratedKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -41,8 +45,28 @@ export function FabricCanvas({ width, height, imageUrl, onReady }: Props) {
 
   useEffect(() => {
     const c = fcRef.current;
-    if (!c || !imageUrl) return;
+    if (!c) return;
     let cancelled = false;
+
+    if (initialJson) {
+      const key = `json:${JSON.stringify(initialJson).slice(0, 64)}`;
+      if (hydratedKeyRef.current === key) return;
+      hydratedKeyRef.current = key;
+      c.loadFromJSON(initialJson as Parameters<typeof c.loadFromJSON>[0], () => {
+        if (cancelled) return;
+        c.backgroundColor = "#0a0a0a";
+        c.renderAll();
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!imageUrl) return;
+    const key = `url:${imageUrl}`;
+    if (hydratedKeyRef.current === key) return;
+    hydratedKeyRef.current = key;
+
     fabric.FabricImage.fromURL(imageUrl, { crossOrigin: "anonymous" }).then((img) => {
       if (cancelled || !c) return;
       c.clear();
@@ -60,7 +84,7 @@ export function FabricCanvas({ width, height, imageUrl, onReady }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [imageUrl, width, height]);
+  }, [imageUrl, initialJson, width, height]);
 
   return <canvas ref={ref} className="rounded-lg border border-border/60" />;
 }
