@@ -58,6 +58,37 @@ function Studio() {
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [warpedUrl, setWarpedUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [saving, setSaving] = useState(false);
+  const saveProjectFn = useServerFn(saveProject);
+
+  const onSave = async () => {
+    const mode: "design" | "stencil" | "warp" = warpedUrl
+      ? "warp"
+      : stencilUrl
+      ? "stencil"
+      : "design";
+    const imageData = warpedUrl ?? stencilUrl ?? designUrl;
+    if (!imageData) {
+      toast.error("Nothing to save yet");
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveProjectFn({
+        data: {
+          title: prompt.trim().slice(0, 80) || "Untitled Design",
+          mode,
+          prompt: prompt || null,
+          imageData,
+        },
+      });
+      toast.success("Saved to dashboard");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
