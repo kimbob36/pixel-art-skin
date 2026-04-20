@@ -211,7 +211,10 @@ function Studio() {
     const f = e.target.files?.[0];
     if (!f) return;
     const reader = new FileReader();
-    reader.onload = () => setBgUrl(reader.result as string);
+    reader.onload = () => {
+      setBgUrl(reader.result as string);
+      setBgChanged(true);
+    };
     reader.readAsDataURL(f);
   };
 
