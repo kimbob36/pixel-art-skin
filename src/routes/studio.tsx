@@ -113,14 +113,21 @@ function Studio() {
     }
     setSaving(true);
     try {
-      await saveProjectFn({
+      const fabricJson = fabricRef.current ? fabricRef.current.toJSON() : null;
+      const result = await saveProjectFn({
         data: {
+          id: projectId ?? undefined,
           title: title.slice(0, 200),
           mode: currentMode,
           prompt: prompt || null,
           imageData,
+          bodyImageData: bgUrl ?? null,
+          bodyChanged: bgChanged,
+          fabricJson,
         },
       });
+      if (!projectId && result?.id) setProjectId(result.id);
+      setBgChanged(false);
       toast.success("Saved to dashboard");
       setSaveOpen(false);
     } catch (e) {
