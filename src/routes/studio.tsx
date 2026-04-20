@@ -27,6 +27,9 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/studio")({
+  validateSearch: (search: Record<string, unknown>): { id?: string } => ({
+    id: typeof search.id === "string" ? search.id : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "AI Studio — inkSync AI" },
