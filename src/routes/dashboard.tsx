@@ -109,8 +109,7 @@ function Dashboard() {
                     variant="outline"
                     size="sm"
                     className="flex-1"
-                    disabled={!p.design_url}
-                    onClick={() => p.design_url && window.open(p.design_url, "_blank", "noopener")}
+                    onClick={() => navigate({ to: "/studio", search: { id: p.id } })}
                   >
                     <ExternalLink className="mr-1 h-4 w-4" /> Open
                   </Button>
